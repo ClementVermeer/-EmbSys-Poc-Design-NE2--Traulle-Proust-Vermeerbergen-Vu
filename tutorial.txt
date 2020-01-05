@@ -1,0 +1,70 @@
+Note: This tutorial is in part based on another tutorial http://docs.microshare.io/docs/1/advanced/lorawan-devices/sodaq_explorer/?fbclid=IwAR28yxfpTE0uYZ4jz5rvHzdlqhba6oIRxvrk4qM7FIR7aESY6wNdg5haA9I#confirm-the-device-is-transmitting-to-the-things-network which was a great help for us. If you are in trouble with the LoRa sending/recieving part, you may go in that tutorial that is more detailed about LoRa.
+Project Description
+The goal of our project is to build a system to communicate between a car prototype on track and the off-track team. We considered the different needs of VED and are providing an embedded system which will boast several sensors, with one of them passing through an I2C communication between our main Sodaq ExpLoRer board and an Arduino Uno
+The goal of this system is to follow the parameters of the car while running and to analyze data during and after the race.
+
+Parts & Tools
+   
+Parts :
+1. Computer
+2. Sodaq Explorer - Sodaq
+3. Arduino Uno - Arduino
+4. GPS Tracking Device - Amazon
+5. Potentiometer - AliExpress
+6. Temperature Sensor MCP9700 - AliExpress
+8. Prototype board - AliExpress
+9. Wires - AliExpress
+10. Micro USB cable - Amazon
+
+Tools:
+
+1. Wire cutters
+
+Step 1: Making the MCU
+ 
+First, we are going to set up the Motor Controller Unit (MCU) of the car. Let’s connect the Arduino Uno with a potentiometer, which permits us to collect data on the motor speed. Then, connect the temperature sensor to monitor engine efficiency.
+These components must be powered, consequently you must connect them to the 5V and the GND.
+
+Step 2: Get started with Sodaq Explorer
+The Sodaq Explorer is a development board like many other Arduino board. The Sodaq Explorer differs from those boards because of the Microchip RN2483, that allows to send data with the LoRa protocol, which is why it is used in this tutorial. There is no IDE developed especially for Sodaq, but it is possible to use Arduino IDE by adding libraries to your IDE.
+To get started with Sodaq Explorer, please follow this link from the Sodaq Explorer website and apply it.
+IMPORTANT NOTE: The Sodaq Serial libraries does not work as on the Arduino boards. If you want to print something on the Arduino serial monitor, use SerialUSB instead of Serial, Serial is made only to communicate in UART.
+
+Step 3: Manage the GPS module
+The GPS module communicates with other devices with a UART communication. On this communication protocol, a first device communicates with a transceiver (TX) pin that goes on the receiver (RX) pin of the other device and conversely. That is what you must connect to your Sodaq. As the GPS is not powered itself, you must also connect it to the GND and the 5V.
+To make sure that your wiring is good, open the NEO-6M-GPS.ino file and upload it on your Sodaq.
+ 
+Step 4: Establish the I2C communication between VCU and MCU
+Now, you must wire the I2C communication between the MCU and the VCU, or if you prefer between the Sodaq Explorer and the Arduino. Here, the Sodaq Explorer will be the master and the Arduino the slave. The master at first requests the slave to send data. The slave then sends data and when the master receives it, it prints it on the Serial Monitor. We will manage the Lora sending later.
+To wire it, connect the data pin (SDA) of the both boards and the clock pin (SCL). If you connect one board at a time to your computer, power the disconnected board with the other on the 5V and GND.
+BE CAREFUL! Some may think that the I2C pins are located on the Sodaq Explorer on pins A4 and A5, like on an Arduino Uno. In fact, SDA and SCL are on the opposite bus bar next to the USB connector.
+Once you have wired the I2C communication, make a unit test. Upload the I2C_-_Master_Reader.ino on the Sodaq Explorer and the I2C_-_Slave_Sender.ino and the Arduino. All works? Let’s move on the next step!
+
+Step 5: Apply the LoRa settings for Arduino IDE
+
+You can’t send data directly from your Sodaq Explorer Board with the Arduino IDE because there is no basic function on the IDE for LoRa. You must download libraries beforehand. 
+The first one is TheThingsNetwork library. That library allows you to send data with LoRa. To add a library to the Arduino IDE, you must:
+•	Click Sketch > Include Library > Manage Libraries
+•	Type The Things Network in the filter text field. At this step, you should get this result:
+ 
+•	Click the install button in the The Things Network Arduino Library section
+The second library to install is CayenneLPP (LPP stands for Low Power Payload). That library allows to quickly design, prototype and visualize IoT solutions in the form of an dashboard (we will discuss that later). Do the same procedure as you did for TheThingsNetwork library. 
+If you did not connect your Sodaq Board to your computer yet, go back on step 2.
+To do the next step, we need to get some information from your Explorer board such as the DevEUI, that is a unique 64 bit end-device identifier for each device that use LoRaWan. To do so, go on github by following this link: https://github.com/microshare/hackiot_examples. Download it and open the file ttn_sodaq_hackiot_reading.ino. Then, upload the code into your Sodaq board. Open the serial monitor.
+ 
+As you can see, that program prints a lot of information about your Explorer board. As said before, we need to get the DevEUI identifier. Copy it the identifier printed on the serial monitor. 
+
+Step 6: Configure your “the Things Network” and Cayenne LPP account
+After creating our account, we created an application. To do so, go to the TNN Console Dashboard, followed by Applications, and add a new one. We need to provide, the application’s ID, description and the device location. In our case, the handler is ttn-handler-eu because we are in Europe.
+ 
+Then, we have to configure the payload format from the SODAQ ExploRer, which is Cayenne LPP. Consequently, click on the button Payload Formats and choose Cayenne LPP.
+ 
+In order to connect the SODAQ, which is the VCU, using LoRaWAN, we need to configure the device in our The Things Network application. The steps are to click on Devices, register a new device, and fill in the information needed. Concerning the Device EUI, get it in the former step.
+ 
+Step 7: Send data via LoRa and get information on internet
+The goal of this step is to send data from your Sodaq Explorer board and to get the data online. For that, open the VCU_code.ino file, that is the entire code of the VCU. As you can notice, the CayenneLPP library is in use. Upload that code in your Sodaq board and we will get those data at the next step.
+Some explanation about the code: we find on that code the function of the I2C communication. We use SerialUSB to print the data received from the I2C communication on the serial monitor and Serial to print/monitor the GPS module. For the Lora Sending, we need to enter the username, the password and the client ID given by the Cayenne LPP interface. The Lora communication is started with Cayenne.begin(username, password and the clientID) and the data is sent with the function Cayenne.addField(String name, int position, int datatosend).
+To get your data online, go on https://cayenne.mydevices.com/cayenne/dashboard/first-visit/devices . Click on “Bring you own thing”. 
+Once your board is connected, you should get the resuslts on the dashboard.
+ 
+Now the tutorial is done !
